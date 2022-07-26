@@ -14,31 +14,33 @@ import (
 type Side struct {
 	url   *string
 	body  *string
-	links *[]string
+	Links *[]string
 }
 
 func NewSide(url *string, body *string) Side {
 	return Side{
 		url:   url,
 		body:  body,
-		links: getLinks(body),
+		Links: getLinks(body),
 	}
 }
 
 func (s *Side) ToString(debug bool) string {
 	if debug {
-		return fmt.Sprintf("{ url: %s,\nlinks: %s,\nbody: %s}", *s.url, *s.links, *s.body)
+		return fmt.Sprintf("{ url: %s,\nlinks: %s,\nbody: %s}", *s.url, *s.Links, *s.body)
 	}
-	return fmt.Sprintf("{ url: %s,\nlinks: %s}", *s.url, *s.links)
+	return fmt.Sprintf("{ url: %s,\nlinks: %s}", *s.url, *s.Links)
 }
 
 func (s *Side) Save() {
-	// TODO: Fix pathsü
-	err := os.MkdirAll("storage", os.ModePerm)
+	path, fileName := splitUrlToPath(*s.url)
+	log.Info("path:", path, " , file:", fileName)
+	err := os.MkdirAll(path, os.ModePerm)
 	if err != nil {
 		log.Info(err)
 	}
-	f, err := os.Create("storage/aktuell.txt")
+	fullPath := path + fileName + ".html"
+	f, err := os.Create(fullPath)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -47,8 +49,20 @@ func (s *Side) Save() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Info("Writen to %s", *s.url)
+	log.Info("Writen to ", fullPath)
 
+}
+
+func sanatizePath(path string) string {
+	return strings.TrimPrefix(strings.TrimSuffix(path, "/"), "/")
+}
+
+func splitUrlToPath(url string) (string, string) {
+	pathParts := strings.Split(sanatizePath(url), "/")
+	if (len(pathParts)) == 1 {
+		return "./backup/", pathParts[0]
+	}
+	return "./backup/" + strings.Join(pathParts[:len(pathParts)-1], "/") + "/", pathParts[len(pathParts)-1]
 }
 
 func FetchAndParse(base string, url string) *Side {
