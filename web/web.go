@@ -32,14 +32,13 @@ func (s *Side) ToString(debug bool) string {
 	return fmt.Sprintf("{ url: %s,\nlinks: %s}", *s.url, *s.Links)
 }
 
-func (s *Side) Save() {
+func (s *Side) Save() string {
 	path, fileName := splitUrlToPath(*s.url)
-	log.Info("path:", path, " , file:", fileName)
 	err := os.MkdirAll(path, os.ModePerm)
 	if err != nil {
-		log.Info(err)
+		log.Error(err)
 	}
-	fullPath := path + fileName + ".html"
+	fullPath := createFullPath(path, fileName)
 	f, err := os.Create(fullPath)
 	if err != nil {
 		log.Fatal(err)
@@ -49,8 +48,7 @@ func (s *Side) Save() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Info("Writen to ", fullPath)
-
+	return fullPath
 }
 
 func sanatizePath(path string) string {
@@ -65,15 +63,22 @@ func splitUrlToPath(url string) (string, string) {
 	return "./backup/" + strings.Join(pathParts[:len(pathParts)-1], "/") + "/", pathParts[len(pathParts)-1]
 }
 
+func createFullPath(path string, fileName string) string {
+	if strings.Contains(fileName, ".") {
+		return path + fileName
+	}
+	return path + fileName + ".html"
+}
+
 func FetchAndParse(base string, url string) *Side {
 	resp, err := http.Get(base + url)
 	if err != nil {
-		log.Error("Could not load page")
+		log.Error("Could not load page: %s", base+url)
 	}
 	defer resp.Body.Close()
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Println("Could not read page")
+		log.Error("Could not read page: %s", base+url)
 	}
 	body := string(bodyBytes)
 	result := NewSide(&url, &body)
@@ -90,7 +95,6 @@ func getLinks(text *string) (data *[]string) {
 		tt := tkn.Next()
 		switch {
 		case tt == html.ErrorToken:
-			log.Error("Error during tokenizing")
 			uniqueLinks := removeDublicates(links)
 			return &uniqueLinks
 		case tt == html.StartTagToken:

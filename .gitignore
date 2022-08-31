@@ -21,3 +21,5 @@
 go.work
 
 backup/
+.DS_Store
+main

@@ -12,17 +12,17 @@ func main() {
 	websitesToSave := []string{"/website/"}
 
 	i := 0
+	savedWebsite := 0
 	for i < len(websitesToSave) {
 		url := websitesToSave[i]
-		log.Info(url)
 		i++
 		if _, exists := savedWebsites[url]; exists {
 			continue
 		}
+		savedWebsite++
 		savedWebsites[url] = true
 		website := web.FetchAndParse(base, url)
-		log.Info(website.ToString(false))
-		website.Save()
+		log.Infof("%d saved %s", savedWebsite, website.Save())
 		websitesToSave = append(websitesToSave, *website.Links...)
 	}
 }
